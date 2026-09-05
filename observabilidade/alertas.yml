@@ -1,0 +1,48 @@
+groups:
+  - name: pedidos
+    rules:
+      # TAXA, e nao contagem.
+      #
+      # "10 erros" nao diz nada: dez de dez e catastrofe, dez de dez milhoes e terca-feira.
+      # O denominador e o que transforma um numero num sinal.
+      - alert: TaxaDeErroAlta
+        expr: |
+          sum(rate(pedidos_consulta_resultado_total{resultado="erro"}[1m]))
+            /
+          sum(rate(pedidos_consulta_resultado_total[1m]))
+            > 0.05
+        for: 15s
+        labels:
+          severidade: critico
+        annotations:
+          resumo: "Mais de 5% das consultas de pedido estao falhando"
+          detalhe: "Taxa atual: {{ $value | humanizePercentage }}"
+
+      # SLO de latencia expresso como fracao dentro do limiar, e nao como percentil.
+      #
+      # `histogram_quantile` interpola entre baldes e devolve um numero aproximado. A fracao
+      # dentro de um balde que existe exatamente no limiar e uma divisao exata.
+      - alert: SloDeLatenciaEstourado
+        expr: |
+          sum(rate(pedidos_consulta_seconds_bucket{le="0.3"}[1m]))
+            /
+          sum(rate(pedidos_consulta_seconds_count[1m]))
+            < 0.95
+        for: 15s
+        labels:
+          severidade: aviso
+        annotations:
+          resumo: "Menos de 95% das consultas dentro do SLO de 300 ms"
+          detalhe: "Fracao dentro do SLO: {{ $value | humanizePercentage }}"
+
+      # O alerta que quase ninguem escreve: o servico parou de responder a raspagem.
+      #
+      # Sem ele, um servico morto nao dispara nada - ele so para de produzir metricas, e
+      # todos os outros alertas ficam sem dados para avaliar.
+      - alert: ServicoSemRaspagem
+        expr: up{job="servico"} == 0
+        for: 15s
+        labels:
+          severidade: critico
+        annotations:
+          resumo: "O Prometheus parou de conseguir raspar o servico"

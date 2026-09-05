@@ -1,0 +1,43 @@
+services:
+  servico:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      AMBIENTE: local
+    ports: ["8080:8080"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alertas.yml:/etc/prometheus/alertas.yml:ro
+    ports: ["9090:9090"]
+    depends_on:
+      servico:
+        condition: service_healthy
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports: ["9093:9093"]
+
+  # Opcional: sobe com `--profile painel`. Consome ~250 MB e nao e necessario para o
+  # disparar-alerta.sh, que fala direto com a API do Alertmanager.
+  grafana:
+    image: grafana/grafana:11.5.1
+    profiles: ["painel"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana:/etc/grafana/provisioning:ro
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
