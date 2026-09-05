@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: metricas-e-alerta
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      # Toda serie ganha estas duas tags. Sem elas, duas instancias do mesmo servico
+      # publicam series identicas e o Prometheus soma coisas que nao deveriam somar.
+      aplicacao: ${spring.application.name}
+      ambiente: ${AMBIENTE:local}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+server:
+  shutdown: graceful
+
+logging:
+  level:
+    root: INFO
