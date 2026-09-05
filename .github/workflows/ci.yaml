@@ -1,0 +1,66 @@
+name: CI
+
+# ATENÇÃO: este pipeline está desarmado de propósito.
+#
+# Num serviço de verdade, os gatilhos são estes:
+#
+#   on:
+#     push:
+#       branches: [main]
+#     pull_request:
+#     workflow_dispatch:
+#
+# Aqui ele roda **só quando alguém clica**, porque este é um repositório de estudo e os
+# minutos de execução são compartilhados com projetos reais.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build, testes e verificações
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # `verify` e não `test`: o limite de cobertura e a geração do SBOM rodam nessa fase.
+      # A suíte em si não precisa de contêiner nenhum: ela raspa /actuator/prometheus.
+      #
+      # O disparar-alerta.sh, que sobe a pilha inteira, não roda aqui: ele leva minutos e
+      # sobe quatro contêineres.
+      - name: mvn verify
+        run: ./mvnw -B verify
+
+      - name: Vulnerabilidades conhecidas no SBOM
+        # Mesmo comando que roda na máquina de quem desenvolve — nada de ação mágica que se
+        # comporta diferente aqui e lá.
+        run: |
+          docker run --rm -v "$PWD:/w" aquasec/trivy:latest \
+            sbom /w/target/sbom.json \
+            --scanners vuln --severity CRITICAL,HIGH --exit-code 1
+
+      - name: Relatórios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios
+          path: |
+            target/site/jacoco/
+            target/sbom.json
+            target/surefire-reports/
+          retention-days: 14
