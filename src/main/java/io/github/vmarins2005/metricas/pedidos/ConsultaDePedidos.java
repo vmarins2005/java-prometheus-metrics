@@ -51,7 +51,7 @@ public class ConsultaDePedidos {
     }
 
     /**
-     * Log-normal com mediana de 20 ms — a mesma forma usada no `java-resiliencia-parceiro`
+     * Log-normal com mediana de 20 ms — a mesma forma usada no `java-resilience4j`
      * desta série: a maioria das chamadas rápida, e uma cauda que vai longe.
      *
      * <p>Se a latência fosse constante, média e p99 seriam iguais e este repositório não teria

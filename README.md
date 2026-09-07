@@ -155,7 +155,7 @@ marcada no Javadoc e existe para que a explosão de séries seja medida.
   publicar e difícil de manter honesto, e este repositório mede em vez de ilustrar.
 - **Métrica de negócio.** `pedidos.consultas.em.andamento` é um `Gauge` técnico. Quais métricas de
   negócio publicar é decisão de quem conhece o domínio.
-- **Exemplares** (ligação métrica → trace). É o assunto do `java-trace-ponta-a-ponta`.
+- **Exemplares** (ligação métrica → trace). É o assunto do `java-opentelemetry-tracing`.
 - **Custo de armazenamento.** Nada aqui mede quanto disco as séries ocupam de fato, só quantas
   são.
 
